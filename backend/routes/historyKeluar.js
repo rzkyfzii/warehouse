@@ -1,29 +1,37 @@
 import express from 'express';
-import db from '../db.js';
+import initDB from '../db.js';
+
+let db;
+(async () => {
+  db = await initDB();
+})();
 
 const router = express.Router();
 
-// Ambil semua data history_keluar (dengan filter metode opsional)
-router.get('/', (req, res) => {
-  const { metode } = req.query;
-
-  let sql = 'SELECT * FROM history_keluar';
-  const params = [];
-
-  if (metode && metode !== 'Semua') {
-    sql += ' WHERE metode = ?';
-    params.push(metode);
+// GET semua history keluar
+router.get('/', async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT * FROM history_keluar ORDER BY tanggal DESC');
+    res.json(rows);
+  } catch (err) {
+    console.error('❌ Error GET /historyKeluar:', err);
+    res.status(500).send('Server error');
   }
+});
 
-  sql += ' ORDER BY tanggal DESC';
-
-  db.query(sql, params, (err, result) => {
-    if (err) {
-      console.error("❌ Gagal ambil history_keluar:", err);
-      return res.status(500).json({ error: err.message });
-    }
-    res.json(result);
-  });
+// POST tambah history keluar
+router.post('/', async (req, res) => {
+  try {
+    const { itemId, jumlah, tanggal } = req.body;
+    await db.query(
+      'INSERT INTO history_keluar (item_id, jumlah, tanggal) VALUES (?, ?, ?)',
+      [itemId, jumlah, tanggal]
+    );
+    res.status(201).send('History keluar ditambahkan');
+  } catch (err) {
+    console.error('❌ Error POST /historyKeluar:', err);
+    res.status(500).send('Server error');
+  }
 });
 
 export default router;

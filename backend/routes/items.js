@@ -1,123 +1,98 @@
-// routes/items.js
 import express from 'express';
-import db from '../db.js'; // ✅ FIXED: naik 1 folder ke backend/db.js
+import initDB from '../db.js';
 
 const router = express.Router();
 
-/*
-  GET /items
-  Mengambil semua item dari database
-*/
-router.get('/', (req, res) => {
-  db.query('SELECT * FROM items', (err, result) => {
-    if (err) return res.status(500).json(err);
-    res.json(result);
-  });
+// Ambil semua item
+router.get('/', async (req, res) => {
+  try {
+    const db = await initDB();
+    const [rows] = await db.query('SELECT * FROM items ORDER BY id DESC');
+    res.json(rows);
+  } catch (err) {
+    console.error('Error saat mengambil items:', err);
+    res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+  }
 });
 
-/*
-  POST /items
-  Menambahkan item baru ke database
-*/
-router.post('/', (req, res) => {
-  const item = {
-    ...req.body,
-    price: Number(req.body.price) || 0 // ⬅️ pastikan price angka
-  };
-  
-  console.log("📥 Item diterima:", item);
-
-  const sql = `
-    INSERT INTO items (name, barcode, category, stock, price, minStock)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `;
-
-  db.query(sql, [
-  item.name,
-  item.barcode,
-  item.category,
-  Number(item.stock),
-  Number(item.price), 
-  Number(item.minStock)
-  ], (err, result) => {
-    if (err) {
-      console.error("❌ Gagal insert item:", err);
-      return res.status(500).json({ success: false, message: "Gagal menambahkan item", error: err });
-    }
-    res.json({ success: true, id: result.insertId });
-  });
+// Tambah item baru
+router.post('/', async (req, res) => {
+  const { name, barcode, category, stock, minStock, price } = req.body;
+  try {
+    const db = await initDB();
+    const [result] = await db.query(
+      'INSERT INTO items (name, barcode, category, stock, minStock, price) VALUES (?, ?, ?, ?, ?, ?)',
+      [name, barcode, category, stock, minStock, price]
+    );
+    res.json({ id: result.insertId, message: 'Item berhasil ditambahkan' });
+  } catch (err) {
+    console.error('Error saat menambah item:', err);
+    res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+  }
 });
 
-/*
-  PUT /items/:id
-  Mengupdate stok item berdasarkan ID
-*/
-router.put('/:id', (req, res) => {
-  console.log("➡️ PUT /items/:id dipanggil");
-  const id = req.params.id;
-  const { stock, price } = req.body;
-
-  const sql = `
-    UPDATE items 
-    SET stock = ?, price = ?, lastUpdated = NOW()
-    WHERE id = ?
-  `;
-
-  db.query(sql, [stock, price, id], (err, result) => {
-    if (err) return res.status(500).json({ success: false, error: err.message });
+// Update item berdasarkan ID
+router.put('/:id', async (req, res) => {
+  const { id } = req.params;
+  const { name, barcode, category, stock, minStock, price } = req.body;
+  try {
+    const db = await initDB();
+    const [result] = await db.query(
+      'UPDATE items SET name=?, barcode=?, category=?, stock=?, minStock=?, price=? WHERE id=?',
+      [name, barcode, category, stock, minStock, price, id]
+    );
     if (result.affectedRows === 0) {
-      return res.status(404).json({ success: false, message: "ID tidak ditemukan" });
+      return res.status(404).json({ message: 'Item tidak ditemukan' });
     }
-    res.json({ success: true });
-  });
+    res.json({ message: 'Item berhasil diperbarui' });
+  } catch (err) {
+    console.error('Error saat update item:', err);
+    res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+  }
 });
 
-
-/*
-  DELETE /items/:id
-  Menghapus item berdasarkan ID
-*/
-router.delete('/:id', (req, res) => {
-  const id = req.params.id;
-  db.query('DELETE FROM items WHERE id = ?', [id], (err) => {
-    if (err) return res.status(500).json(err);
-    res.json({ success: true });
-  });
+// Hapus item berdasarkan ID
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const db = await initDB();
+    const [result] = await db.query('DELETE FROM items WHERE id = ?', [id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Item tidak ditemukan' });
+    }
+    res.json({ message: 'Item berhasil dihapus' });
+  } catch (err) {
+    console.error('Error saat hapus item:', err);
+    res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+  }
 });
 
-/*
-  POST /items/out
-  Mengurangi stok & mencatat ke history_keluar
-*/
-router.post('/out', (req, res) => {
-  const { barcode, qty, metode, sumber } = req.body;
-  const tanggal = new Date();
+// Tambah stok manual
+router.post('/in/manual', async (req, res) => {
+  try {
+    const { barcode, quantity } = req.body;
 
-  // Ambil info varian dan kategori dari item
-  const selectSql = 'SELECT category AS kategori, name AS varian FROM items WHERE barcode = ?';
-  db.query(selectSql, [barcode], (err, rows) => {
-    if (err) return res.status(500).json({ success: false, error: err.message });
-    if (rows.length === 0) return res.status(404).json({ success: false, message: 'Item tidak ditemukan' });
+    if (!barcode || !quantity) {
+      return res.status(400).json({ message: 'Barcode dan quantity wajib diisi' });
+    }
 
-    const { kategori, varian } = rows[0];
+    const db = await initDB();
 
-    // Kurangi stok
-    const updateSql = 'UPDATE items SET stock = stock - ? WHERE barcode = ?';
-    db.query(updateSql, [qty, barcode], (err2) => {
-      if (err2) return res.status(500).json({ success: false, error: err2.message });
+    // Ambil item berdasarkan barcode
+    const [rows] = await db.query('SELECT * FROM items WHERE barcode = ?', [barcode]);
 
-      // Catat ke history_keluar
-      const insertSql = `
-        INSERT INTO history_keluar (tanggal, kodebarang, varian, kategori, qty, metode, sumber)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `;
-      db.query(insertSql, [tanggal, barcode, varian, kategori, qty, metode, sumber], (err3) => {
-        if (err3) return res.status(500).json({ success: false, error: err3.message });
-        res.json({ success: true, message: 'Stok keluar dicatat' });
-      });
-    });
-  });
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Item tidak ditemukan' });
+    }
+
+    // Update stok
+    await db.query('UPDATE items SET stock = stock + ?, lastUpdated = NOW() WHERE barcode = ?', [quantity, barcode]);
+
+    res.json({ message: 'Stok berhasil ditambahkan' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Terjadi kesalahan server' });
+  }
 });
-
 
 export default router;

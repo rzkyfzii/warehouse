@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Helmet } from 'react-helmet';
+import { Helmet } from 'react-helmet-async';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart3, Plus, Scan, Download, Upload, LogOut, Settings, TrendingDown, TrendingUp, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog } from '@/components/ui/dialog';
 import { Tabs } from '@/components/ui/tabs';
 import { Toaster } from '@/components/ui/toaster';
 import { useToast } from '@/components/ui/use-toast';
@@ -18,6 +17,10 @@ import CategoryManager from '@/components/CategoryManager';
 import { getBarcodeInfo } from '@/data/barcodeMap';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { variantCategoryMap } from "@/data/variantCategoryMap";
+
 import {
   Select,
   SelectTrigger,
@@ -25,6 +28,16 @@ import {
   SelectContent,
   SelectItem
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from "@/components/ui/dialog";
+
+
 
 
 function App() {
@@ -41,6 +54,79 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
   const [notMappedBarcodes, setNotMappedBarcodes] = useState([]);
+  const varianList = ['Lavender'];
+  const [showManualIn, setShowManualIn] = useState(false);
+  const [showManualOut, setShowManualOut] = useState(false);
+  const [showManualForm, setShowManualForm] = useState(false);
+const [formType, setFormType] = useState('masuk'); // "masuk" atau "keluar"
+
+const variantsPerCategory = {
+  "Vial 3ml Classic": [
+    "Roses",
+    "Ombre",
+    "Magic",
+    "Love Oud",
+    "Amethyst",
+    "Happines",
+    "Jasminum",
+    "Amber",
+    "Matcher"
+  ],
+  "Vial 3ml Eksklusif": [
+    "L'AME",
+    "Sunset",
+    "Senso",
+    "Glorious"
+  ],
+  "Vial 2ml": [
+    "Roses",
+    "Ombre",
+    "Magic",
+    "Love Oud",
+    "Amethyst",
+    "Happines",
+    "Jasminum",
+    "Amber",
+    "Matcher",
+    "L'AME",
+    "Sunset",
+    "Senso",
+    "Glorious",
+    "BrotherHood"
+  ],
+  "Roll On 10ml": [
+    "Roses",
+    "Ombre",
+    "Magic",
+    "Love Oud",
+    "Amethyst",
+    "Happines",
+    "Jasminum",
+    "Amber",
+    "Matcher",
+    "L'AME",
+    "Sunset",
+    "Senso",
+    "Glorious"
+  ],
+  "Hairmist": [
+  "Midnight Bloom",
+  "Amber Vougere",
+  "Luxe Mist",
+  "Silky Smooth",
+  "Rose Dew"
+]
+
+};
+
+
+const allowedCategories = [
+  { value: "Vial 3ml Classic", label: "Vial 3ml Classic" },
+  { value: "Vial 3ml Eksklusif", label: "Vial 3ml Eksklusif" },
+  { value: "Vial 2ml", label: "Vial 2ml" },
+  { value: "Roll On 10ml", label: "Roll On 10ml" },
+  { value: "Hairmist", label: "Hairmist" }
+];
 
 const [selectedReason, setSelectedReason] = useState('');
 const reasons = [
@@ -52,6 +138,13 @@ const reasons = [
   { value: 'OnlineShop', label: 'OnlineShop' },
   { value: 'Lainnya', label: 'Lainnya' }
 ];
+const [manualData, setManualData] = useState({
+  category: 'Vial',
+  varian: '',
+  qty: '',
+  metode: '',
+  sumber: ''
+});
 
 
   const defaultCategories = [
@@ -60,71 +153,52 @@ const reasons = [
     { value: 'Parfum - Classic', label: 'Parfum Classic', icon: '🌹' },
     { value: 'Parfum - Sanju', label: 'Parfum Sanju', icon: '🌸' },
     { value: 'Parfum - Balinese', label: 'Parfum Balinese', icon: '🌺' },
-    { value: 'Parfum - Follow Me', label: 'Parfum Follow Me', icon: '💫' },
+    { value: 'Parfum - Ocassion', label: 'Parfum Ocassion', icon: '💫' },
     { value: 'Body Spray - Aerosols', label: 'Body Spray Aerosols', icon: '💨' },
     { value: 'Home Care - Diffuser', label: 'Home Care Diffuser', icon: '🏠' },
-    { value: 'Hair Care', label: 'Hair Care', icon: '💇' }
+    { value: 'Hair Care', label: 'Hair Care', icon: '💇' },
+    { value: 'Vial', label: 'Vial', icon: '🧪' },
+    { value: 'Roll On 10ml', label: 'Roll On 10ml', icon: '🧴' },
+
   ];
 
   const fetchItems = () => {
-  fetch("http://localhost:3000/items")
+  fetch(`${import.meta.env.VITE_API_BASE}/items`)
     .then(res => res.json())
     .then(data => setItems(data))
     .catch(err => console.error("Gagal mengambil ulang data items:", err));
 };
 
 useEffect(() => {
-  // Ambil data kategori dari backend
-  fetch("http://localhost:3000/categories")
+  fetch("https://fmiwarehouse.shop/api/categories")
     .then(res => res.json())
-    .then(data => setCategories(data))
-    .catch(err => console.error("Gagal ambil kategori:", err));
+    .then(data => {
+      setCategories(Array.isArray(data) ? data : []);
+    })
+    .catch(err => {
+      console.error("Gagal ambil kategori:", err);
+      setCategories([]);
+    });
 
-  // Ambil data stok barang
-  fetch("http://localhost:3000/items")
-    .then((res) => res.json())
-    .then((data) => setItems(data))
-    .catch((err) => console.error("Gagal ambil data:", err));
-
-  // Ambil data stok keluar dari backend (history_keluar)
-fetch("http://localhost:3000/history-keluar")
-  .then((res) => res.json())
-  .then((data) => {
-    const mapped = data.map((row) => ({
-      id: row.id,
-      date: row.tanggal,
-      item: {
-        name: row.varian,
-        category: row.kategori,
-      },
-      quantity: row.qty,
-      reason: row.metode || "Upload",
-      description: row.sumber || "-",
-    }));
-    setStockOutRecords(mapped);
-  })
-  .catch((err) => console.error("Gagal ambil history_keluar:", err));
-
-  // Ambil status admin
-  const savedAdminStatus = localStorage.getItem('isAdmin');
-  if (savedAdminStatus === 'true') {
-    setIsAdmin(true);
-  }
-}, []);
-useEffect(() => {
-  fetch("http://localhost:3000/categories")
+  fetch("https://fmiwarehouse.shop/api/items")
     .then(res => res.json())
-    .then(data => setCategories(data))
-    .catch(err => console.error("Gagal ambil kategori:", err));
+    .then(data => {
+      setItems(Array.isArray(data) ? data : []);
+    })
+    .catch(err => {
+      console.error("Gagal ambil data items:", err);
+      setItems([]);
+    });
 
-  fetch("http://localhost:3000/items")
-    .then((res) => res.json())
-    .then((data) => setItems(data))
-    .catch((err) => console.error("Gagal ambil data:", err));
+  fetch("https://fmiwarehouse.shop/api/history-keluar")
+    .then(res => res.json())
+    .then(data => {
+      if (!Array.isArray(data)) {
+        console.error("⚠️ history-keluar bukan array:", data);
+        setStockOutRecords([]);
+        return;
+      }
 
-  fetch("http://localhost:3000/history-keluar")
-    .then((res) => res.json())
-    .then((data) => {
       const mapped = data.map((row) => ({
         id: row.id,
         date: row.tanggal,
@@ -138,10 +212,13 @@ useEffect(() => {
       }));
       setStockOutRecords(mapped);
     })
-    .catch((err) => console.error("Gagal ambil history_keluar:", err));
+    .catch(err => {
+      console.error("Gagal ambil history_keluar:", err);
+      setStockOutRecords([]);
+    });
 
-  const savedAdminStatus = localStorage.getItem('isAdmin');
-  if (savedAdminStatus === 'true') {
+  const savedAdminStatus = localStorage.getItem("isAdmin");
+  if (savedAdminStatus === "true") {
     setIsAdmin(true);
   }
 }, []);
@@ -191,7 +268,7 @@ const handleStockIn = (newItem) => {
     const updatedStock = items[existingItemIndex].stock + newItem.stock;
     const updatedPrice = newItem.price || items[existingItemIndex].price || 0;
 
-    fetch(`http://localhost:3000/items/${items[existingItemIndex].id}`, {
+    fetch(`https://fmiwarehouse.shop/api/items/${items[existingItemIndex].id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ stock: updatedStock, price: updatedPrice }) // ✅ Tambahkan price
@@ -206,7 +283,7 @@ const handleStockIn = (newItem) => {
     });
   } else {
     // ✅ Tambahkan item baru (POST)
-    fetch("http://localhost:3000/items", {
+    fetch("https://fmiwarehouse.shop/api/items", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(newItem)
@@ -227,47 +304,42 @@ const handleStockIn = (newItem) => {
   setScannedBarcode(null);
 };
 
-const handleStockOut = ({ barcode, qty, metode, sumber }) => {
-  fetch('http://localhost:3000/items/out', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ barcode, qty, metode, sumber }),
-  })
-    .then(res => res.json()) // ✅ ini wajib ada untuk parsing JSON
-    .then(data => {
-      if (data.success) {
-        console.log("✅ Barang keluar berhasil dicatat:", data);
-        toast({ title: "Barang Keluar", description: `Barcode ${barcode} - Qty: ${qty}` });
+const handleStockOut = ({ barcode, varian, category, qty, metode, sumber }) => {
+  const payload = (barcode && barcode.trim() !== "")
+    ? { barcode, quantity: qty, metode, sumber }
+    : { varian, category, quantity: qty, metode, sumber };
 
-        // ✅ Update stok secara lokal di state
-        setItems(prev =>
-          prev.map(item =>
-            item.barcode === barcode
-              ? {
-                  ...item,
-                  stock: item.stock - qty,
-                  lastUpdated: new Date().toISOString()
-                }
-              : item
-          )
-        );
-      } else {
-        throw new Error(data.message || "Unknown error");
-      }
+  console.log("📤 Kirim stok keluar:", payload);
+
+  fetch("https://fmiwarehouse.shop/api/stock-out", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  })
+    .then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Gagal mencatat barang keluar");
+      return data;
     })
-    .catch(err => {
-      console.error("❌ Gagal input barang keluar:", err);
-      toast({
-        title: "Error",
-        description: "Gagal mencatat barang keluar",
-        variant: "destructive"
-      });
+    .then((data) => {
+      console.log("✅ Berhasil:", data);
+      setItems(prev =>
+        prev.map(item =>
+          (barcode && item.barcode === barcode) ||
+          (!barcode && item.name.toLowerCase().includes(varian.toLowerCase()))
+            ? { ...item, stock: Math.max(0, item.stock - qty), lastUpdated: new Date().toISOString() }
+            : item
+        )
+      );
+    })
+    .catch((err) => {
+      console.error("❌ Error stok keluar:", err);
     });
 };
 
 
 const handleUpdateStock = (id, newStock) => {
-  fetch(`http://localhost:3000/items/${id}`, {
+  fetch(`https://fmiwarehouse.shop/api/items/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ stock: newStock })
@@ -412,7 +484,7 @@ const handleChiperlabStockOutUpload = (event) => {
 
       console.log("📤 Upload dengan alasan:", selectedReason);
 
-      fetch("http://localhost:3000/stock-out", {
+      fetch("https://fmiwarehouse.shop/api/stock-out", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -480,7 +552,7 @@ const handleChiperlabStockOutUpload = (event) => {
     return;
   }
 
-  fetch(`http://localhost:3000/items/${id}`, {
+  fetch(`https://fmiwarehouse.shop/api/items/${id}`, {
     method: "DELETE"
   })
   .then(() => {
@@ -503,7 +575,7 @@ const handleChiperlabStockOutUpload = (event) => {
   };
 
   const handleAddCategory = (categoryData) => {
-  fetch("http://localhost:3000/categories", {
+  fetch("https://fmiwarehouse.shop/api/categories", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(categoryData)
@@ -528,7 +600,7 @@ const handleChiperlabStockOutUpload = (event) => {
   };
 
  const handleDeleteCategory = (id) => {
-  fetch(`http://localhost:3000/categories/${id}`, {
+  fetch(`https://fmiwarehouse.shop/api/categories/${id}`, {
     method: "DELETE",
   })
     .then((res) => res.json())
@@ -696,26 +768,262 @@ const exportStockOut = () => {
               </div>
               
               <div className="flex flex-wrap gap-2">
-                <Button
+             <Dialog open={showManualForm} onOpenChange={setShowManualForm}>
+  <DialogContent className="bg-gray-900 text-white rounded-lg p-6">
+    <DialogHeader>
+      <DialogTitle>
+        Input Manual Stok {manualData.type === "out" ? "Keluar" : "Masuk"}
+      </DialogTitle>
+      <DialogDescription>
+        Form untuk mencatat stok keluar/masuk secara manual.
+      </DialogDescription>
+    </DialogHeader>
+
+    {/* Jenis */}
+    <div className="mb-4">
+      <label className="block text-sm mb-2">Jenis</label>
+      <select
+        value={manualData.type}
+        onChange={(e) =>
+          setManualData({ ...manualData, type: e.target.value })
+        }
+        className="w-full p-2 rounded bg-gray-800 text-white"
+      >
+        <option value="in">Stok Masuk</option>
+        <option value="out">Stok Keluar</option>
+      </select>
+    </div>
+
+    {/* Kategori */}
+    <div className="mb-4">
+      <label className="block text-sm mb-2">Kategori</label>
+      <select
+        value={manualData.category}
+        onChange={(e) =>
+          setManualData({ ...manualData, category: e.target.value, varian: "" })
+        }
+        className="w-full p-2 rounded bg-gray-800 text-white"
+      >
+        <option value="">Pilih Kategori</option>
+        {Object.keys(variantsPerCategory).map((cat) => (
+          <option key={cat} value={cat}>
+            {cat}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    {/* Varian */}
+    <div className="mb-4">
+      <label className="block text-sm mb-2">Varian</label>
+      <select
+        value={manualData.varian}
+        onChange={(e) =>
+          setManualData({ ...manualData, varian: e.target.value })
+        }
+        className="w-full p-2 rounded bg-gray-800 text-white"
+        disabled={!manualData.category}
+      >
+        <option value="">Pilih Varian</option>
+        {variantsPerCategory[manualData.category]?.map((varian) => (
+          <option key={varian} value={varian}>
+            {varian}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    {/* Qty */}
+    <div className="mb-4">
+      <label className="block text-sm mb-2">Jumlah</label>
+      <input
+        type="number"
+        value={manualData.qty}
+        onChange={(e) =>
+          setManualData({ ...manualData, qty: e.target.value })
+        }
+        className="w-full p-2 rounded bg-gray-800 text-white"
+        placeholder="Masukkan jumlah"
+      />
+    </div>
+
+    {/* Alasan */}
+    <div className="mb-4">
+      <label className="block text-sm mb-2">Alasan</label>
+      <select
+        value={manualData.metode}
+        onChange={(e) =>
+          setManualData({ ...manualData, metode: e.target.value })
+        }
+        className="w-full p-2 rounded bg-gray-800 text-white"
+      >
+        <option value="">Pilih Alasan</option>
+        <option value="Penjualan">Penjualan</option>
+        <option value="Sample">Sample</option>
+        <option value="Rusak">Rusak</option>
+        <option value="Kadaluarsa">Kadaluarsa</option>
+      </select>
+    </div>
+
+    <DialogFooter>
+      <Button
   onClick={() => {
-    if (!isAdmin) {
+    if (!requireAdmin()) return;
+
+    const qty = parseInt(manualData.qty, 10);
+    if (isNaN(qty) || qty <= 0) {
       toast({
-        title: "Login Admin Diperlukan 🔐",
-        description: "Silakan login sebagai admin untuk menggunakan fitur scan",
-        variant: "destructive"
+        title: "Error",
+        description: "Qty harus lebih besar dari 0",
+        variant: "destructive",
       });
-      setShowLoginForm(true);
       return;
     }
-    setShowScanner(true);
+
+    // 🔍 Cari item berdasarkan varian + kategori
+    const selectedItem = items.find(
+      (i) =>
+        i.name.toLowerCase() === manualData.varian.toLowerCase() &&
+        i.category.toLowerCase() === manualData.category.toLowerCase()
+    );
+
+    const endpoint =
+  manualData.type === "out"
+    ? "https://fmiwarehouse.shop/api/stock-out"
+    : "https://fmiwarehouse.shop/api/items/in/manual";
+
+const payload =
+  manualData.type === "out"
+    ? (
+        selectedItem
+          ? {
+              itemId: selectedItem.id,
+              quantity: qty,
+              metode: manualData.metode || "Manual",
+              sumber: "Manual",
+            }
+          : {
+              varian: manualData.varian,
+              category: manualData.category,
+              quantity: qty,
+              metode: manualData.metode || "Manual",
+              sumber: "Manual",
+            }
+      )
+    : {
+        category: manualData.category,
+        variant: manualData.varian, // 🔑 pakai "variant" (bukan varian)
+        qty: qty, // 🔑 pakai "qty" (bukan quantity)
+        price: 0,
+        metode: manualData.metode || "Manual",
+        sumber: "Manual",
+      };
+
+
+    console.log("🔁 Kirim ke endpoint:", endpoint);
+    console.log("📦 Payload:", payload);
+
+    fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+      .then(async (res) => {
+        const text = await res.text();
+        try {
+          const data = JSON.parse(text);
+          if (!res.ok)
+            throw new Error(data.message || "Gagal input stok");
+          return data;
+        } catch (e) {
+          throw new Error(`Respon server bukan JSON: ${text}`);
+        }
+      })
+      .then(() => {
+        toast({
+          title:
+            manualData.type === "out"
+              ? "Barang Keluar"
+              : "Barang Masuk",
+          description: `${manualData.varian} (${manualData.category}) - Qty: ${qty}`,
+        });
+
+        const updatedItems = [...items];
+        if (selectedItem) {
+          const index = items.findIndex((i) => i.id === selectedItem.id);
+          updatedItems[index] = {
+            ...updatedItems[index],
+            stock:
+              manualData.type === "out"
+                ? Math.max(0, updatedItems[index].stock - qty)
+                : updatedItems[index].stock + qty,
+            lastUpdated: new Date().toISOString(),
+          };
+        } else {
+          updatedItems.push({
+            name: manualData.varian,
+            category: manualData.category,
+            stock: qty,
+            lastUpdated: new Date().toISOString(),
+            price: 0,
+          });
+        }
+
+        setItems(updatedItems);
+        setShowManualForm(false);
+        setManualData({
+          type: "in",
+          category: "",
+          varian: "",
+          qty: "",
+          metode: "",
+          sumber: "Manual",
+        });
+      })
+      .catch((err) => {
+        console.error("❌ Error input stok:", err);
+        toast({
+          title: "Error",
+          description: err.message,
+          variant: "destructive",
+        });
+      });
   }}
-  className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white"
 >
-  <Scan className="w-4 h-4 mr-2" />
-  Scan Barcode
+  Simpan
 </Button>
 
-                
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
+              <Button
+  onClick={() => {
+    setFormType('masuk'); // default ke masuk
+    setShowManualForm(true);
+  }}
+  className="bg-indigo-600 text-white"
+>
+  + Input Manual
+</Button>
+                <Button
+                  onClick={() => {
+                    if (!isAdmin) {
+                      toast({
+                        title: "Login Admin Diperlukan 🔐",
+                        description: "Silakan login sebagai admin untuk menggunakan fitur scan",
+                        variant: "destructive"
+                      });
+                      setShowLoginForm(true);
+                      return;
+                    }
+                    setShowScanner(true);
+                  }}
+                  className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white"
+                >
+                  <Scan className="w-4 h-4 mr-2" />
+                  Scan Barcode
+                </Button>   
                 <div className="relative">
                   <input
                     type="file"
@@ -736,6 +1044,7 @@ const exportStockOut = () => {
                     Upload Stok (Chiperlab)
                   </label>
                 </div>
+                
                 {/* Dropdown Alasan */}
               <Select value={selectedReason} onValueChange={setSelectedReason}>
                   <SelectTrigger className="bg-white/10 border-purple-300 text-white">

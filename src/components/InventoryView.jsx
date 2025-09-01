@@ -134,6 +134,28 @@ const InventoryView = ({
     }
   };
 
+    // Ambil emoji kategori
+  const getCategoryIcon = (category) => {
+    const found = categories.find(
+      cat => cat.value === category || cat.label === category
+    );
+    return found ? found.icon : "📦";
+  };
+
+  // Tambahkan icon dan totalValue ke setiap item
+  const enrichedItems = filteredItems.map(item => ({
+    ...item,
+    icon: getCategoryIcon(item.category),
+    totalValue: (item.stock || 0) * (item.price || 0)
+  }));
+
+  // Hitung total inventory
+  const totalInventoryValue = enrichedItems.reduce(
+    (sum, item) => sum + item.totalValue,
+    0
+  );
+
+
   return (
     <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 px-4">
       <div className="lg:w-1/4">
@@ -163,15 +185,23 @@ const InventoryView = ({
         </motion.div>
 
         <StockTable
-          items={filteredItems}
-          stockAdjustments={stockAdjustments}
-          onStockAdjustment={handleStockAdjustment}
-          onApplyAdjustment={applyStockAdjustment}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          selectedCategory={selectedCategory}
-          isAdmin={isAdmin}
-        />
+  items={enrichedItems}
+  stockAdjustments={stockAdjustments}
+  onStockAdjustment={handleStockAdjustment}
+  onApplyAdjustment={applyStockAdjustment}
+  onEdit={handleEdit}
+  onDelete={handleDelete}
+  selectedCategory={selectedCategory}
+  isAdmin={isAdmin}
+/>
+
+{/* Total Nilai Inventory */}
+<div className="mt-4 p-4 bg-purple-800/40 border border-purple-500/50 rounded-lg text-white">
+  <p className="text-lg font-bold">
+    💰 Total Nilai Inventory: Rp {totalInventoryValue.toLocaleString('id-ID')}
+  </p>
+</div>
+
       </div>
     </div>
   );

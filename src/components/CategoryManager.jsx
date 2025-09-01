@@ -8,6 +8,9 @@ import { DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog
 import { useToast } from '@/components/ui/use-toast';
 
 const CategoryManager = ({ categories, onAddCategory, onUpdateCategory, onDeleteCategory, onClose }) => {
+  // ✅ pastikan categories selalu array
+  const safeCategories = Array.isArray(categories) ? categories : [];
+
   const [newCategory, setNewCategory] = useState({ name: '', icon: '' });
   const [editingCategory, setEditingCategory] = useState(null);
   const { toast } = useToast();
@@ -71,28 +74,33 @@ const CategoryManager = ({ categories, onAddCategory, onUpdateCategory, onDelete
   };
 
   const handleDeleteCategory = (category) => {
-  if (window.confirm(`Apakah Anda yakin ingin menghapus kategori "${category.label}"?`)) {
-    onDeleteCategory(category.id); // ✅ gunakan category.id, bukan value!
-    
-    toast({
-      title: "Kategori Berhasil Dihapus! 🗑️",
-      description: `${category.label} telah dihapus`,
-    });
-  }
-};
+    if (window.confirm(`Apakah Anda yakin ingin menghapus kategori "${category.label}"?`)) {
+      onDeleteCategory(category.id); // ✅ gunakan category.id, bukan value!
+      
+      toast({
+        title: "Kategori Berhasil Dihapus! 🗑️",
+        description: `${category.label} telah dihapus`,
+      });
+    }
+  };
 
   const defaultCategories = [
     'Parfum - Eksklusif',
     'Parfum - Classic', 
     'Parfum - Sanju',
     'Parfum - Balinese',
-    'Parfum - Follow Me',
+    'Parfum - Ocassion',
     'Body Spray - Aerosols',
     'Home Care - Diffuser',
-    'Hair Care'
+    'Hair Care',
+    'Vial 3ml Classic',
+    'Vial 3ml Eksklusif',
+    'Vial 2ml',
+    'Roll On 10ml',
   ];
 
-  const customCategories = categories.filter(cat => 
+  // ✅ gunakan safeCategories agar tidak error
+  const customCategories = safeCategories.filter(cat => 
     cat.value !== 'all' && !defaultCategories.includes(cat.value)
   );
 
@@ -106,6 +114,7 @@ const CategoryManager = ({ categories, onAddCategory, onUpdateCategory, onDelete
       </DialogHeader>
 
       <div className="space-y-6">
+        {/* Tambah kategori */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -145,6 +154,7 @@ const CategoryManager = ({ categories, onAddCategory, onUpdateCategory, onDelete
           </Button>
         </motion.div>
 
+        {/* Kategori Default */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -153,21 +163,24 @@ const CategoryManager = ({ categories, onAddCategory, onUpdateCategory, onDelete
           <h3 className="text-lg font-semibold text-white mb-4">Kategori Default</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {categories.filter(cat => cat.value !== 'all' && defaultCategories.includes(cat.value)).map((category) => (
-              <div
-                key={category.value}
-                className="flex items-center justify-between p-3 bg-black/20 rounded-lg"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">{category.icon}</span>
-                  <span className="text-white">{category.label}</span>
+            {safeCategories
+              .filter(cat => cat.value !== 'all' && defaultCategories.includes(cat.value))
+              .map((category) => (
+                <div
+                  key={category.value}
+                  className="flex items-center justify-between p-3 bg-black/20 rounded-lg"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">{category.icon}</span>
+                    <span className="text-white">{category.label}</span>
+                  </div>
+                  <span className="text-purple-300 text-sm">Default</span>
                 </div>
-                <span className="text-purple-300 text-sm">Default</span>
-              </div>
             ))}
           </div>
         </motion.div>
 
+        {/* Kategori Custom */}
         {customCategories.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}

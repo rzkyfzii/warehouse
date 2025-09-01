@@ -24,7 +24,7 @@ const StockForm = ({ onSubmit, onClose, initialData = null }) => {
     { value: 'Parfum - Classic', label: 'Parfum Classic', icon: '🌹' },
     { value: 'Parfum - Sanju', label: 'Parfum Sanju', icon: '🌸' },
     { value: 'Parfum - Balinese', label: 'Parfum Balinese', icon: '🌺' },
-    { value: 'Parfum - Follow Me', label: 'Parfum Follow Me', icon: '💫' },
+    { value: 'Parfum - Ocassion', label: 'Parfum Ocassion', icon: '💫' },
     { value: 'Body Spray - Aerosols', label: 'Body Spray Aerosols', icon: '💨' },
     { value: 'Home Care - Diffuser', label: 'Home Care Diffuser', icon: '🏠' },
     { value: 'Hair Care', label: 'Hair Care', icon: '💇' }

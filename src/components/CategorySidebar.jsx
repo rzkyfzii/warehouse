@@ -30,7 +30,10 @@ const CategorySidebar = ({ categories, selectedCategory, onCategorySelect, items
               }`}
             >
               <span className="mr-2">{category.icon}</span>
-              <span className="flex-1 truncate">{category.label}</span>
+              <span className="flex-1 truncate">
+  {category.label === 'Parfum Follow Me' ? 'Parfum Ocassion' : category.label}
+</span>
+
               <Badge 
                 variant="secondary" 
                 className={`ml-2 ${

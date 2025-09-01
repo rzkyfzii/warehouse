@@ -36,15 +36,15 @@ const barcodeMap = {
   "8997019513091": { variant: "MATCHER", category: "Parfum - Classic", price: 120000 },
 
   // SANJU
-  "3001": { variant: "MEN PERFUME (RED)", category: "Parfum - Sanju", price: 60000 },
-  "3002": { variant: "MEN PERFUME (WHITE)", category: "Parfum - Sanju", price: 60000 },
+  "8997019519833": { variant: "MEN PERFUME (RED)", category: "Parfum - Sanju", price: 60000 },
+  "8997019518669": { variant: "MEN PERFUME (WHITE)", category: "Parfum - Sanju", price: 60000 },
   "3003": { variant: "MEN PERFUME (YELLOW)", category: "Parfum - Sanju", price: 60000 },
-  "3004": { variant: "SENCE AMETHYST", category: "Parfum - Sanju", price: 60000 },
+  "8997019519833": { variant: "SENCE AMETHYST", category: "Parfum - Sanju", price: 60000 },
   "3005": { variant: "SENCE HAPPY", category: "Parfum - Sanju", price: 60000 },
   "3006": { variant: "SENCE JOYFUL", category: "Parfum - Sanju", price: 60000 },
   "3007": { variant: "SENCE LOVELY", category: "Parfum - Sanju", price: 60000 },
-  "3008": { variant: "SENCE ROMANCE", category: "Parfum - Sanju", price: 60000 },
-  "3009": { variant: "SENCE SECRET", category: "Parfum - Sanju", price: 60000 },
+  "8997019518645": { variant: "SENCE ROMANCE", category: "Parfum - Sanju", price: 60000 },
+  "8997019519840": { variant: "SENCE SECRET", category: "Parfum - Sanju", price: 60000 },
 
   // BODY SPRAY
   "8997019518393": { variant: "MEN BODY SPRAY (RED)", category: "Body Spray - Aerosols", price: 40000 },
@@ -62,6 +62,8 @@ const barcodeMap = {
   "5004": { variant: "DISFFUSER WHITE", category: "Home Care - Diffuser", price: 30000 },
   "5005": { variant: "DISFFUSER BLUE", category: "Home Care - Diffuser", price: 30000 },
   "5006": { variant: "DISFFUSER", category: "Home Care - Diffuser", price: 30000 },
+  "5007": { variant: "DISFFUSER LAVENDER", category: "Home Care - Diffuser", price: 30000 },
+  "5008": { variant: "DISFFUSER MIX BERRIES", category: "Home Care - Diffuser", price: 30000 },
 
   // HAIR CARE
   "6001": { variant: "HAIR CREAM (BLACK)", category: "Hair Care", price: 25000 },
@@ -69,6 +71,33 @@ const barcodeMap = {
   "6003": { variant: "SUPER HARD GEL (PURPLE)", category: "Hair Care", price: 25000 },
   "8997019519048": { variant: "SUPER HARD GEL (GREEN FIX)", category: "Hair Care", price: 25000 },
   "8997019519055": { variant: "SUPER HARD GEL (BLUE)", category: "Hair Care", price: 25000 },
+
+   // === Vial 3ml Eksklusif ===
+  "8994457782768": { variant: "L'ame de", category: "Vial 3ml Eksklusif", price: 10000 },
+  "8994457782775": { variant: "Sunset", category: "Vial 3ml Eksklusif", price: 10000 },
+  "8994457782751": { variant: "Senso", category: "Vial 3ml Eksklusif", price: 10000 },
+  "8994457782782": { variant: "Glorious", category: "Vial 3ml Eksklusif", price: 10000 },
+
+  // === Vial 3ml Classic ===
+  "8994457780269": { variant: "Ombre", category: "Vial 3ml Classic", price: 10000 },
+  "8994457780252": { variant: "Happines", category: "Vial 3ml Classic", price: 10000 },
+  "8994457780337": { variant: "Jasminum", category: "Vial 3ml Classic", price: 10000 },
+  "8994457780344": { variant: "Magic", category: "Vial 3ml Classic", price: 10000 },
+  "8994457780290": { variant: "Amethyst", category: "Vial 3ml Classic", price: 10000 },
+  "8994457780320": { variant: "Roses", category: "Vial 3ml Classic", price: 10000 },
+  "8994457780306": { variant: "Amber", category: "Vial 3ml Classic", price: 10000 },
+  "8994457780283": { variant: "Brotherhood", category: "Vial 3ml Classic", price: 10000 },
+
+  "8994457784762": { variant: "Lunareve", category: "Ocassion", price: 150000 },
+  "8994457784748": { variant: "Aeros", category: "Ocassion", price: 150000 },
+  "8994457784731": { variant: "Cartivage", category: "Ocassion", price: 150000 },
+  "8994457784786": { variant: "Veldran", category: "Ocassion", price: 150000 },
+  "8994457784779": { variant: "Elysian Haze", category: "Ocassion", price: 150000 },
+  "8994457784724": { variant: "Basil Breeze", category: "Ocassion", price: 150000 },
+  "8994457784717": { variant: "Tonkadusk", category: "Ocassion", price: 150000 },
+  "8994457784755": { variant: "Nutty Whispers", category: "Ocassion", price: 150000 },
+  "8994457785134": { variant: "Stromchaser", category: "Ocassion", price: 150000 },
+  "8994457785141 ": { variant: "Poetic", category: "Ocassion", price: 150000 },
 };
 
 export const getBarcodeInfo = (barcode) => {

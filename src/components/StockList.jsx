@@ -45,7 +45,7 @@ const StockList = ({ items, onUpdateStock, onDeleteItem, selectedCategory }) => 
       'Parfum - Classic': '🌹',
       'Parfum - Sanju': '🌸',
       'Parfum - Balinese': '🌺',
-      'Parfum - Follow Me': '💫',
+      'Parfum - Ocassion': '💫',
       'Body Spray - Aerosols': '💨',
       'Home Care - Diffuser': '🏠',
       'Hair Care': '💇'
@@ -59,7 +59,7 @@ const StockList = ({ items, onUpdateStock, onDeleteItem, selectedCategory }) => 
       'Parfum - Classic': 'from-rose-500 to-pink-500',
       'Parfum - Sanju': 'from-purple-500 to-violet-500',
       'Parfum - Balinese': 'from-emerald-500 to-teal-500',
-      'Parfum - Follow Me': 'from-blue-500 to-cyan-500',
+      'Parfum - Ocassion': 'from-blue-500 to-cyan-500',
       'Body Spray - Aerosols': 'from-gray-500 to-slate-500',
       'Home Care - Diffuser': 'from-orange-500 to-red-500',
       'Hair Care': 'from-indigo-500 to-purple-500'

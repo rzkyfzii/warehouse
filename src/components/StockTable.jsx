@@ -29,18 +29,26 @@ const StockTable = ({
   };
 
   const getCategoryIcon = (category) => {
-    const iconMap = {
-      'Parfum - Eksklusif': '💎',
-      'Parfum - Classic': '🌹',
-      'Parfum - Sanju': '🌸',
-      'Parfum - Balinese': '🌺',
-      'Parfum - Follow Me': '💫',
-      'Body Spray - Aerosols': '💨',
-      'Home Care - Diffuser': '🏠',
-      'Hair Care': '💇'
-    };
-    return iconMap[category] || '📦';
+  const iconMap = {
+    'Parfum - Eksklusif': '💎',
+    'Parfum - Classic': '🌹',
+    'Parfum - Sanju': '🌸',
+    'Parfum - Balinese': '🌺',
+    'Parfum - Ocassion': '💫',
+    'Body Spray - Aerosols': '💨',
+    'Home Care - Diffuser': '🏠',
+    'Hair Care': '💇',
+
+    // kategori baru
+    'Vial 3ml Classic': '🧪',
+    'Vial 3ml Eksklusif': '🔮',
+    'Vial 2ml': '🥼',
+    'Roll On 10ml': '🧴',
   };
+
+  return iconMap[category] || '📦';
+};
+
 
   if (items.length === 0) {
     return (

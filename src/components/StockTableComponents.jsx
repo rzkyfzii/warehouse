@@ -47,7 +47,7 @@ export const StockTableRow = ({
       'Parfum - Classic': '🌹',
       'Parfum - Sanju': '🌸',
       'Parfum - Balinese': '🌺',
-      'Parfum - Follow Me': '💫',
+      'Parfum - Ocassion': '💫',
       'Body Spray - Aerosols': '💨',
       'Home Care - Diffuser': '🏠',
       'Hair Care': '💇'

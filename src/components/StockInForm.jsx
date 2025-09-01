@@ -10,9 +10,11 @@ import { useToast } from '@/components/ui/use-toast';
 import { getBarcodeInfo } from '@/data/barcodeMap';
 
 const StockInForm = ({ onSubmit, onClose, categories, scannedBarcode = null }) => {
+  // ✅ fallback: pastikan categories array
+  const safeCategories = Array.isArray(categories) ? categories : [];
+
   const [formData, setFormData] = useState(() => {
     const barcodeInfo = scannedBarcode ? getBarcodeInfo(scannedBarcode) : null;
-    
     return {
       category: barcodeInfo?.category || '',
       name: barcodeInfo?.variant || '',
@@ -26,22 +28,10 @@ const StockInForm = ({ onSubmit, onClose, categories, scannedBarcode = null }) =
 
   const validateForm = () => {
     const newErrors = {};
-    
-    if (!formData.category) {
-      newErrors.category = 'Kategori wajib dipilih';
-    }
-    
-    if (!formData.name.trim()) {
-      newErrors.name = 'Varian wajib diisi';
-    }
-    
-    if (!formData.barcode.trim()) {
-      newErrors.barcode = 'Kode Barcode wajib diisi';
-    }
-    
-    if (formData.stock < 0) {
-      newErrors.stock = 'Stock tidak boleh negatif';
-    }
+    if (!formData.category) newErrors.category = 'Kategori wajib dipilih';
+    if (!formData.name.trim()) newErrors.name = 'Varian wajib diisi';
+    if (!formData.barcode.trim()) newErrors.barcode = 'Kode Barcode wajib diisi';
+    if (formData.stock < 0) newErrors.stock = 'Stock tidak boleh negatif';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -49,18 +39,15 @@ const StockInForm = ({ onSubmit, onClose, categories, scannedBarcode = null }) =
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
     if (validateForm()) {
       const submitData = {
         ...formData,
-        stock: parseInt(formData.stock),
+        stock: parseInt(formData.stock) || 0,
         minStock: 0,
         price: 0,
         location: 'Gudang A-1'
       };
-      
       onSubmit(submitData);
-      
       toast({
         title: "Berhasil! 🎉",
         description: `${formData.name} telah ditambahkan`,
@@ -76,14 +63,11 @@ const StockInForm = ({ onSubmit, onClose, categories, scannedBarcode = null }) =
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: '' }));
   };
 
   const handleBarcodeChange = (value) => {
     const barcodeInfo = getBarcodeInfo(value);
-    
     if (barcodeInfo) {
       setFormData(prev => ({
         ...prev,
@@ -91,7 +75,6 @@ const StockInForm = ({ onSubmit, onClose, categories, scannedBarcode = null }) =
         category: barcodeInfo.category,
         name: barcodeInfo.variant
       }));
-      
       toast({
         title: "Barcode Dikenali! 🎯",
         description: `${barcodeInfo.variant} - ${barcodeInfo.category}`,
@@ -99,10 +82,7 @@ const StockInForm = ({ onSubmit, onClose, categories, scannedBarcode = null }) =
     } else {
       setFormData(prev => ({ ...prev, barcode: value }));
     }
-    
-    if (errors.barcode) {
-      setErrors(prev => ({ ...prev, barcode: '' }));
-    }
+    if (errors.barcode) setErrors(prev => ({ ...prev, barcode: '' }));
   };
 
   const generateBarcode = () => {
@@ -139,9 +119,7 @@ const StockInForm = ({ onSubmit, onClose, categories, scannedBarcode = null }) =
               Barcode: <code className="bg-black/20 px-1 rounded">{scannedBarcode}</code>
             </p>
             {getBarcodeInfo(scannedBarcode) && (
-              <p className="text-emerald-300 text-sm">
-                ✅ Produk dikenali otomatis
-              </p>
+              <p className="text-emerald-300 text-sm">✅ Produk dikenali otomatis</p>
             )}
           </div>
         )}
@@ -157,7 +135,7 @@ const StockInForm = ({ onSubmit, onClose, categories, scannedBarcode = null }) =
                 <SelectValue placeholder="Pilih kategori" />
               </SelectTrigger>
               <SelectContent className="bg-slate-800 border-purple-500">
-                {categories.filter(cat => cat.value !== 'all').map((category) => (
+                {safeCategories.filter(cat => cat.value !== 'all').map((category) => (
                   <SelectItem key={category.value} value={category.value} className="text-white hover:bg-purple-700">
                     <span className="flex items-center gap-2">
                       <span>{category.icon}</span>
@@ -167,15 +145,11 @@ const StockInForm = ({ onSubmit, onClose, categories, scannedBarcode = null }) =
                 ))}
               </SelectContent>
             </Select>
-            {errors.category && (
-              <p className="text-red-400 text-sm">{errors.category}</p>
-            )}
+            {errors.category && <p className="text-red-400 text-sm">{errors.category}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="name" className="text-purple-200">
-              Varian *
-            </Label>
+            <Label htmlFor="name" className="text-purple-200">Varian *</Label>
             <Input
               id="name"
               value={formData.name}
@@ -183,15 +157,11 @@ const StockInForm = ({ onSubmit, onClose, categories, scannedBarcode = null }) =
               placeholder="Masukkan varian produk"
               className="bg-white/10 border-purple-300 text-white placeholder:text-purple-300"
             />
-            {errors.name && (
-              <p className="text-red-400 text-sm">{errors.name}</p>
-            )}
+            {errors.name && <p className="text-red-400 text-sm">{errors.name}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="barcode" className="text-purple-200">
-              Kode Barcode *
-            </Label>
+            <Label htmlFor="barcode" className="text-purple-200">Kode Barcode *</Label>
             <div className="flex gap-2">
               <Input
                 id="barcode"
@@ -199,7 +169,6 @@ const StockInForm = ({ onSubmit, onClose, categories, scannedBarcode = null }) =
                 onChange={(e) => handleBarcodeChange(e.target.value)}
                 placeholder="Masukkan kode barcode"
                 className="bg-white/10 border-purple-300 text-white placeholder:text-purple-300"
-                readOnly={!!scannedBarcode}
               />
               {!scannedBarcode && (
                 <Button
@@ -212,15 +181,11 @@ const StockInForm = ({ onSubmit, onClose, categories, scannedBarcode = null }) =
                 </Button>
               )}
             </div>
-            {errors.barcode && (
-              <p className="text-red-400 text-sm">{errors.barcode}</p>
-            )}
+            {errors.barcode && <p className="text-red-400 text-sm">{errors.barcode}</p>}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="stock" className="text-purple-200">
-              Stock Masuk *
-            </Label>
+            <Label htmlFor="stock" className="text-purple-200">Stock Masuk *</Label>
             <Input
               id="stock"
               type="number"
@@ -231,9 +196,7 @@ const StockInForm = ({ onSubmit, onClose, categories, scannedBarcode = null }) =
               className="bg-white/10 border-purple-300 text-white placeholder:text-purple-300"
               autoFocus={!!scannedBarcode}
             />
-            {errors.stock && (
-              <p className="text-red-400 text-sm">{errors.stock}</p>
-            )}
+            {errors.stock && <p className="text-red-400 text-sm">{errors.stock}</p>}
           </div>
         </div>
 
