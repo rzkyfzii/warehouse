@@ -26,10 +26,12 @@ const CategoryManager = ({ categories, onAddCategory, onUpdateCategory, onDelete
     }
 
     const categoryData = {
-      value: newCategory.name,
-      label: newCategory.name,
-      icon: newCategory.icon || '📦'
-    };
+  id: Date.now(), // id unik
+  value: newCategory.name,
+  label: newCategory.name,
+  icon: newCategory.icon || '📦'
+};
+
 
     onAddCategory(categoryData);
     setNewCategory({ name: '', icon: '' });
@@ -165,9 +167,9 @@ const CategoryManager = ({ categories, onAddCategory, onUpdateCategory, onDelete
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {safeCategories
               .filter(cat => cat.value !== 'all' && defaultCategories.includes(cat.value))
-              .map((category) => (
+              .map((category, idx) => (
                 <div
-                  key={category.value}
+                  key={category.id || idx} // fallback index
                   className="flex items-center justify-between p-3 bg-black/20 rounded-lg"
                 >
                   <div className="flex items-center gap-3">
@@ -192,7 +194,7 @@ const CategoryManager = ({ categories, onAddCategory, onUpdateCategory, onDelete
             <div className="space-y-3">
               {customCategories.map((category) => (
                 <div
-                  key={category.value}
+                  key={category.id}
                   className="flex items-center justify-between p-3 bg-black/20 rounded-lg"
                 >
                   {editingCategory && editingCategory.value === category.value ? (

@@ -3,6 +3,34 @@ import initDB from '../db.js';
 
 const router = express.Router();
 
+router.post('/', async (req, res) => {
+  const item = {
+    ...req.body,
+    price: Number(req.body.price) || 0,
+    photo: req.body.photo || null,   // ✅ tambahkan photo
+  };
+
+  console.log("📥 Item diterima:", item);
+
+  const sql = `
+    INSERT INTO items (name, barcode, category, stock, price, minStock, photo)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `;
+
+  const db = await initDB();
+  const [result] = await db.query(sql, [
+    item.name,
+    item.barcode,
+    item.category,
+    Number(item.stock),
+    Number(item.price),
+    Number(item.minStock),
+    item.photo,
+  ]);
+
+  res.json({ success: true, id: result.insertId });
+});
+
 // Ambil semua item
 router.get('/', async (req, res) => {
   try {
@@ -67,32 +95,41 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// Tambah stok manual
-router.post('/in/manual', async (req, res) => {
-  try {
-    const { barcode, quantity } = req.body;
+app.post("/api/items/in/manual", async (req, res) => {
+  const { category, variant, qty, price, metode, sumber } = req.body;
 
-    if (!barcode || !quantity) {
-      return res.status(400).json({ message: 'Barcode dan quantity wajib diisi' });
-    }
-
-    const db = await initDB();
-
-    // Ambil item berdasarkan barcode
-    const [rows] = await db.query('SELECT * FROM items WHERE barcode = ?', [barcode]);
-
-    if (rows.length === 0) {
-      return res.status(404).json({ message: 'Item tidak ditemukan' });
-    }
-
-    // Update stok
-    await db.query('UPDATE items SET stock = stock + ?, lastUpdated = NOW() WHERE barcode = ?', [quantity, barcode]);
-
-    res.json({ message: 'Stok berhasil ditambahkan' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Terjadi kesalahan server' });
+  if (!qty || qty <= 0) {
+    return res.status(400).json({ message: "Quantity wajib diisi" });
   }
+
+  if (!category || !variant) {
+    return res.status(400).json({ message: "Kategori & Varian wajib diisi" });
+  }
+
+  // Cek item di database
+  let item = await db.items.findOne({ category, variant });
+
+  if (!item) {
+    // Kalau belum ada, buat item baru
+    item = await db.items.create({
+      category,
+      variant,
+      stock: 0,
+      price,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+  }
+
+  // Tambah stok
+  item.stock += qty;
+  item.updatedAt = new Date();
+  await item.save();
+
+  return res.json({
+    message: "Stok berhasil ditambahkan",
+    item,
+  });
 });
 
 export default router;

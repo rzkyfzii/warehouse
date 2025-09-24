@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
 import CategorySidebar from '@/components/CategorySidebar';
 import StockTable from '@/components/StockTable';
+import { variantImageMap } from "@/data/variantImageMap";
+import { variantCategoryMap } from "@/data/variantCategoryMap";
 
 const InventoryView = ({
   items,
@@ -19,7 +21,14 @@ const InventoryView = ({
   const [stockAdjustments, setStockAdjustments] = useState({});
   const { toast } = useToast();
 
-  const filteredItems = items.filter((item) => {
+  // Pastikan setiap item punya category dari variantCategoryMap jika kosong
+  const itemsWithCategory = items.map(item => ({
+    ...item,
+    category: item.category || variantCategoryMap[item.code]?.category || 'Unknown'
+  }));
+
+  // Filter item berdasarkan search dan selectedCategory
+  const filteredItems = itemsWithCategory.filter((item) => {
     const matchesSearch =
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.barcode.includes(searchTerm) ||
@@ -79,6 +88,7 @@ const InventoryView = ({
                       ...i,
                       stock: newStock,
                       lastUpdated: new Date().toISOString(),
+                      category: i.category || variantCategoryMap[i.code]?.category || 'Unknown'
                     }
                   : i
               )
@@ -134,7 +144,7 @@ const InventoryView = ({
     }
   };
 
-    // Ambil emoji kategori
+  // Ambil emoji kategori
   const getCategoryIcon = (category) => {
     const found = categories.find(
       cat => cat.value === category || cat.label === category
@@ -142,11 +152,12 @@ const InventoryView = ({
     return found ? found.icon : "📦";
   };
 
-  // Tambahkan icon dan totalValue ke setiap item
+  // Tambahkan icon, totalValue, dan image ke setiap item
   const enrichedItems = filteredItems.map(item => ({
     ...item,
     icon: getCategoryIcon(item.category),
-    totalValue: (item.stock || 0) * (item.price || 0)
+    totalValue: (item.stock || 0) * (item.price || 0),
+    image: variantImageMap[item.name] || variantImageMap.default
   }));
 
   // Hitung total inventory
@@ -155,16 +166,15 @@ const InventoryView = ({
     0
   );
 
-
   return (
     <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 px-4">
       <div className="lg:w-1/4">
         <CategorySidebar
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onCategorySelect={setSelectedCategory}
-          items={items}
-        />
+  items={itemsWithCategory}
+  selectedCategory={selectedCategory}
+  onSelectCategory={setSelectedCategory}
+/>
+
       </div>
 
       <div className="flex-1">
@@ -184,23 +194,25 @@ const InventoryView = ({
           </div>
         </motion.div>
 
-        <StockTable
-  items={enrichedItems}
-  stockAdjustments={stockAdjustments}
-  onStockAdjustment={handleStockAdjustment}
-  onApplyAdjustment={applyStockAdjustment}
-  onEdit={handleEdit}
-  onDelete={handleDelete}
-  selectedCategory={selectedCategory}
-  isAdmin={isAdmin}
-/>
 
-{/* Total Nilai Inventory */}
-<div className="mt-4 p-4 bg-purple-800/40 border border-purple-500/50 rounded-lg text-white">
-  <p className="text-lg font-bold">
-    💰 Total Nilai Inventory: Rp {totalInventoryValue.toLocaleString('id-ID')}
-  </p>
-</div>
+
+        <StockTable
+          items={enrichedItems}
+          stockAdjustments={stockAdjustments}
+          onStockAdjustment={handleStockAdjustment}
+          onApplyAdjustment={applyStockAdjustment}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          selectedCategory={selectedCategory}
+          isAdmin={isAdmin}
+        />
+
+        {/* Total Nilai Inventory */}
+        <div className="mt-4 p-4 bg-purple-800/40 border border-purple-500/50 rounded-lg text-white">
+          <p className="text-lg font-bold">
+            💰 Total Nilai Inventory: Rp {totalInventoryValue.toLocaleString('id-ID')}
+          </p>
+        </div>
 
       </div>
     </div>

@@ -135,14 +135,19 @@ const StockInForm = ({ onSubmit, onClose, categories, scannedBarcode = null }) =
                 <SelectValue placeholder="Pilih kategori" />
               </SelectTrigger>
               <SelectContent className="bg-slate-800 border-purple-500">
-                {safeCategories.filter(cat => cat.value !== 'all').map((category) => (
-                  <SelectItem key={category.value} value={category.value} className="text-white hover:bg-purple-700">
-                    <span className="flex items-center gap-2">
-                      <span>{category.icon}</span>
-                      <span>{category.label}</span>
-                    </span>
-                  </SelectItem>
-                ))}
+{safeCategories.filter(cat => cat.value !== 'all').map((category, idx) => (
+  <SelectItem
+    key={category.value + '-' + idx} // gabungkan value + index
+    value={category.value}
+    className="text-white hover:bg-purple-700"
+  >
+    <span className="flex items-center gap-2">
+      <span>{category.icon}</span>
+      <span>{category.label}</span>
+    </span>
+  </SelectItem>
+))}
+
               </SelectContent>
             </Select>
             {errors.category && <p className="text-red-400 text-sm">{errors.category}</p>}

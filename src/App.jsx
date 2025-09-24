@@ -1,32 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import { Helmet } from 'react-helmet-async';
-import { motion, AnimatePresence } from 'framer-motion';
-import { BarChart3, Plus, Scan, Download, Upload, LogOut, Settings, TrendingDown, TrendingUp, User } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Tabs } from '@/components/ui/tabs';
-import { Toaster } from '@/components/ui/toaster';
-import { useToast } from '@/components/ui/use-toast';
-import BarcodeScanner from '@/components/BarcodeScanner';
-import StockInForm from '@/components/StockInForm';
-import StockOutForm from '@/components/StockOutForm';
-import InventoryView from '@/components/InventoryView';
-import StockOutView from '@/components/StockOutView';
-import Dashboard from '@/components/Dashboard';
-import LoginForm from '@/components/LoginForm';
-import CategoryManager from '@/components/CategoryManager';
-import { getBarcodeInfo } from '@/data/barcodeMap';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+// App.jsx
+import React, { useState, useEffect } from "react";
+import { Helmet } from "react-helmet-async";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  BarChart3,
+  Plus,
+  Scan,
+  Download,
+  Upload,
+  LogOut,
+  Settings,
+  TrendingDown,
+  TrendingUp,
+  User,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tabs } from "@/components/ui/tabs";
+import { Toaster } from "@/components/ui/toaster";
+import { useToast } from "@/components/ui/use-toast";
+import BarcodeScanner from "@/components/BarcodeScanner";
+import StockInForm from "@/components/StockInForm";
+import StockOutForm from "@/components/StockOutForm";
+import InventoryView from "@/components/InventoryView";
+import StockOutView from "@/components/StockOutView";
+import Dashboard from "@/components/Dashboard";
+import LoginForm from "@/components/LoginForm";
+import CategoryManager from "@/components/CategoryManager";
+import { getBarcodeInfo } from "@/data/barcodeMap";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { variantCategoryMap } from "@/data/variantCategoryMap";
+import { variantImageMap } from "@/data/variantImageMap";
 
 import {
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
-  SelectItem
+  SelectItem,
 } from "@/components/ui/select";
 import {
   Dialog,
@@ -34,14 +47,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter
+  DialogFooter,
 } from "@/components/ui/dialog";
 
-
-
-
 function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [items, setItems] = useState([]);
   const [stockOutRecords, setStockOutRecords] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -54,11 +64,8 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(false);
   const { toast } = useToast();
   const [notMappedBarcodes, setNotMappedBarcodes] = useState([]);
-  const varianList = ['Lavender'];
-  const [showManualIn, setShowManualIn] = useState(false);
-  const [showManualOut, setShowManualOut] = useState(false);
   const [showManualForm, setShowManualForm] = useState(false);
-const [formType, setFormType] = useState('masuk'); // "masuk" atau "keluar"
+
 
 const variantsPerCategory = {
   "Vial 3ml Classic": [
@@ -139,12 +146,14 @@ const reasons = [
   { value: 'Lainnya', label: 'Lainnya' }
 ];
 const [manualData, setManualData] = useState({
-  category: 'Vial',
+  type: 'in',      // 'in' atau 'out'
+  category: '',
   varian: '',
   qty: '',
   metode: '',
-  sumber: ''
+  sumber: 'Manual'
 });
+
 
 
   const defaultCategories = [
@@ -169,59 +178,38 @@ const [manualData, setManualData] = useState({
     .catch(err => console.error("Gagal mengambil ulang data items:", err));
 };
 
-useEffect(() => {
-  fetch("https://fmiwarehouse.shop/api/categories")
-    .then(res => res.json())
-    .then(data => {
-      setCategories(Array.isArray(data) ? data : []);
-    })
-    .catch(err => {
-      console.error("Gagal ambil kategori:", err);
-      setCategories([]);
-    });
+  // Ambil data awal
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_BASE}/categories`)
+      .then((res) => res.json())
+      .then((data) => setCategories(Array.isArray(data) ? data : []))
+      .catch(() => setCategories([]));
 
-  fetch("https://fmiwarehouse.shop/api/items")
-    .then(res => res.json())
-    .then(data => {
-      setItems(Array.isArray(data) ? data : []);
-    })
-    .catch(err => {
-      console.error("Gagal ambil data items:", err);
-      setItems([]);
-    });
+    fetch(`${import.meta.env.VITE_API_BASE}/items`)
+      .then((res) => res.json())
+      .then((data) => setItems(Array.isArray(data) ? data : []))
+      .catch(() => setItems([]));
 
-  fetch("https://fmiwarehouse.shop/api/history-keluar")
-    .then(res => res.json())
-    .then(data => {
-      if (!Array.isArray(data)) {
-        console.error("⚠️ history-keluar bukan array:", data);
-        setStockOutRecords([]);
-        return;
-      }
+    fetch(`${import.meta.env.VITE_API_BASE}/history-keluar`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!Array.isArray(data)) return setStockOutRecords([]);
+        const mapped = data.map((row) => ({
+          id: row.id,
+          date: row.tanggal,
+          item: { name: row.varian, category: row.kategori },
+          quantity: row.qty,
+          reason: row.metode || "Upload",
+          description: row.sumber || "-",
+        }));
+        setStockOutRecords(mapped);
+      })
+      .catch(() => setStockOutRecords([]));
 
-      const mapped = data.map((row) => ({
-        id: row.id,
-        date: row.tanggal,
-        item: {
-          name: row.varian,
-          category: row.kategori,
-        },
-        quantity: row.qty,
-        reason: row.metode || "Upload",
-        description: row.sumber || "-",
-      }));
-      setStockOutRecords(mapped);
-    })
-    .catch(err => {
-      console.error("Gagal ambil history_keluar:", err);
-      setStockOutRecords([]);
-    });
+    const savedAdminStatus = localStorage.getItem("isAdmin");
+    if (savedAdminStatus === "true") setIsAdmin(true);
+  }, []);
 
-  const savedAdminStatus = localStorage.getItem("isAdmin");
-  if (savedAdminStatus === "true") {
-    setIsAdmin(true);
-  }
-}, []);
 
 
   useEffect(() => {
@@ -232,114 +220,147 @@ useEffect(() => {
     localStorage.setItem('isAdmin', isAdmin.toString());
   }, [isAdmin]);
 
-  const handleBarcodeDetected = (barcode) => {
-    const existingItem = items.find(item => item.barcode === barcode);
-    const barcodeInfo = getBarcodeInfo(barcode);
-    
-    if (existingItem) {
-      toast({
-        title: "Barcode Ditemukan! 📦",
-        description: `${existingItem.name} - Stok: ${existingItem.stock}`,
-      });
-      setActiveTab('inventory');
-    } else if (barcodeInfo) {
-      toast({
-        title: "Produk Dikenali! ✨",
-        description: `${barcodeInfo.variant} - Tinggal input stok masuk`,
-      });
-      setScannedBarcode(barcode);
-      setShowStockInForm(true);
-    } else {
-      toast({
-        title: "Barcode Baru Terdeteksi! ✨",
-        description: `Barcode: ${barcode} - Tambahkan item baru?`,
-      });
-      setScannedBarcode(barcode);
-      setShowStockInForm(true);
-    }
-    setShowScanner(false);
-  };
+const handleBarcodeDetected = (barcode) => {
+  const existingItem = items.find(item => item.barcode === barcode);
+  const barcodeInfo = getBarcodeInfo(barcode);
+
+  if (existingItem) {
+    toast({
+      title: "Barcode Ditemukan! 📦",
+      description: `${existingItem.name} - Stok: ${existingItem.stock}`,
+    });
+    setActiveTab('inventory');
+  } else if (barcodeInfo) {
+    // buat itemData di sini — di scope yang punya barcodeInfo
+    const newItemData = {
+      name: barcodeInfo.variant || "Tanpa Nama",
+      category: barcodeInfo.category || "Uncategorized",
+      barcode: barcode,
+      stock: 0, // default 0, user akan input qty di form
+      price: barcodeInfo.price ?? 0,
+      image: variantImageMap[barcodeInfo.variant] || variantImageMap.default
+    };
+
+    toast({
+      title: "Produk Dikenali! ✨",
+      description: `${barcodeInfo.variant} - Tinggal input stok masuk`,
+    });
+
+    // kalau ingin prefill form dengan data hasil mapping,
+    // kamu bisa simpan newItemData ke state baru (opsional):
+    // setScannedItemData(newItemData);
+
+    setScannedBarcode(barcode);
+    setShowStockInForm(true);
+  } else {
+    toast({
+      title: "Barcode Baru Terdeteksi! ✨",
+      description: `Barcode: ${barcode} - Tambahkan item baru?`,
+    });
+    setScannedBarcode(barcode);
+    setShowStockInForm(true);
+  }
+  setShowScanner(false);
+};
+
 
 const handleStockIn = (newItem) => {
-  const existingItemIndex = items.findIndex(item => item.barcode === newItem.barcode);
+  const existingItemIndex = items.findIndex(
+    (item) => item.barcode === newItem.barcode
+  );
 
   if (existingItemIndex !== -1) {
-    // ✅ Update stok dan harga ke backend (PUT)
+    // Kalau barang sudah ada → update stok & harga
     const updatedStock = items[existingItemIndex].stock + newItem.stock;
-    const updatedPrice = newItem.price || items[existingItemIndex].price || 0;
+    const updatedPrice =
+      newItem.price || items[existingItemIndex].price || 0;
 
-    fetch(`https://fmiwarehouse.shop/api/items/${items[existingItemIndex].id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ stock: updatedStock, price: updatedPrice }) // ✅ Tambahkan price
-    })
-    .then(() => {
-      setItems(prev => prev.map((item, index) =>
-        index === existingItemIndex
-          ? { ...item, stock: updatedStock, price: updatedPrice, lastUpdated: new Date().toISOString() }
-          : item
-      ));
-      toast({ title: "Stok Ditambahkan", description: `${newItem.name} +${newItem.stock}` });
-    });
+    fetch(
+      `${import.meta.env.VITE_API_BASE}/items/${items[existingItemIndex].id}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stock: updatedStock, price: updatedPrice }),
+      }
+    )
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP error! ${res.status}`);
+        return res.json().catch(() => ({})); // fallback kalau respon kosong
+      })
+      .then(() => {
+        setItems((prev) =>
+          prev.map((item, i) =>
+            i === existingItemIndex
+              ? { ...item, stock: updatedStock, price: updatedPrice }
+              : item
+          )
+        );
+        toast({
+          title: "Stok Ditambahkan",
+          description: `${newItem.name} +${newItem.stock}`,
+        });
+      })
+      .catch((err) => console.error("Update stok gagal:", err));
   } else {
-    // ✅ Tambahkan item baru (POST)
-    fetch("https://fmiwarehouse.shop/api/items", {
+    // Kalau barang belum ada → buat baru
+    fetch(`${import.meta.env.VITE_API_BASE}/items`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newItem)
+      body: JSON.stringify(newItem),
     })
-    .then(res => res.json())
-    .then((data) => {
-      const item = {
-        ...newItem,
-        id: data.id,
-        lastUpdated: new Date().toISOString()
-      };
-      setItems(prev => [...prev, item]);
-      toast({ title: "Item Baru Ditambahkan", description: newItem.name });
-    });
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP error! ${res.status}`);
+        return res.json().catch(() => ({}));
+      })
+      .then((data) => {
+        setItems((prev) => [
+          ...prev,
+          { ...newItem, id: data.id || Date.now() }, // fallback kalau id kosong
+        ]);
+        toast({
+          title: "Item Baru Ditambahkan",
+          description: newItem.name,
+        });
+      })
+      .catch((err) => console.error("Tambah item gagal:", err));
   }
-
-  setShowStockInForm(false);
-  setScannedBarcode(null);
 };
 
-const handleStockOut = ({ barcode, varian, category, qty, metode, sumber }) => {
-  const payload = (barcode && barcode.trim() !== "")
-    ? { barcode, quantity: qty, metode, sumber }
-    : { varian, category, quantity: qty, metode, sumber };
+ const handleStockOut = ({ barcode, varian, category, qty, metode, sumber }) => {
+    const payload = barcode
+      ? { barcode, quantity: qty, metode, sumber }
+      : { varian, category, quantity: qty, metode, sumber };
 
-  console.log("📤 Kirim stok keluar:", payload);
-
-  fetch("https://fmiwarehouse.shop/api/stock-out", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  })
-    .then(async (res) => {
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Gagal mencatat barang keluar");
-      return data;
+    fetch(`${import.meta.env.VITE_API_BASE}/stock-out`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     })
-    .then((data) => {
-      console.log("✅ Berhasil:", data);
-      setItems(prev =>
-        prev.map(item =>
-          (barcode && item.barcode === barcode) ||
-          (!barcode && item.name.toLowerCase().includes(varian.toLowerCase()))
-            ? { ...item, stock: Math.max(0, item.stock - qty), lastUpdated: new Date().toISOString() }
-            : item
-        )
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+        return data;
+      })
+      .then(() => {
+        setItems((prev) =>
+          prev.map((item) =>
+            (barcode && item.barcode === barcode) ||
+            (!barcode &&
+              item.name.toLowerCase().includes(varian.toLowerCase()))
+              ? { ...item, stock: Math.max(0, item.stock - qty) }
+              : item
+          )
+        );
+        toast({ title: "Stok Keluar Dicatat", description: `${qty} keluar` });
+      })
+      .catch((err) =>
+        toast({ title: "Error", description: err.message, variant: "destructive" })
       );
-    })
-    .catch((err) => {
-      console.error("❌ Error stok keluar:", err);
-    });
-};
+  };
 
 
 const handleUpdateStock = (id, newStock) => {
-  fetch(`https://fmiwarehouse.shop/api/items/${id}`, {
+  fetch(`${import.meta.env.VITE_API_BASE}/items/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ stock: newStock })
@@ -484,16 +505,17 @@ const handleChiperlabStockOutUpload = (event) => {
 
       console.log("📤 Upload dengan alasan:", selectedReason);
 
-      fetch("https://fmiwarehouse.shop/api/stock-out", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          itemId: item.id,
-          quantity: qty,
-          metode: selectedReason,
-          sumber: 'Chiperlab'
-        })
-      })
+    // handleChiperlabStockOutUpload
+fetch(`${import.meta.env.VITE_API_BASE}/stock-out`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    itemId: item.id,
+    quantity: qty,
+    metode: selectedReason,
+    sumber: 'Chiperlab'
+  })
+})
         .then(res => res.json())
         .then(data => {
           if (data.success) {
@@ -543,23 +565,12 @@ const handleChiperlabStockOutUpload = (event) => {
 
 
   const handleDeleteItem = (id) => {
-  if (!isAdmin) {
-    toast({
-      title: "Akses Ditolak! 🔒",
-      description: "Hanya admin yang dapat menghapus item",
-      variant: "destructive"
-    });
-    return;
-  }
-
-  fetch(`https://fmiwarehouse.shop/api/items/${id}`, {
-    method: "DELETE"
-  })
-  .then(() => {
-    setItems(prev => prev.filter(item => item.id !== id));
-    toast({ title: "Item Dihapus", description: "Data berhasil dihapus dari database" });
-  });
-};
+    fetch(`${import.meta.env.VITE_API_BASE}/items/${id}`, { method: "DELETE" })
+      .then(() => {
+        setItems((prev) => prev.filter((item) => item.id !== id));
+        toast({ title: "Item Dihapus", description: "Data berhasil dihapus" });
+      });
+  };
 
 
   const handleLogin = (success) => {
@@ -568,29 +579,28 @@ const handleChiperlabStockOutUpload = (event) => {
 
   const handleLogout = () => {
     setIsAdmin(false);
+    localStorage.removeItem("isAdmin");
     toast({
       title: "Logout Berhasil! 👋",
       description: "Anda telah keluar dari mode admin",
     });
   };
 
-  const handleAddCategory = (categoryData) => {
-  fetch("https://fmiwarehouse.shop/api/categories", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(categoryData)
-  })
-    .then(res => res.json())
-    .then((data) => {
-      const newCategory = { ...categoryData, id: data.id };
-      setCategories(prev => [...prev, newCategory]);
-      toast({ title: "Kategori Ditambahkan", description: categoryData.label });
+ const handleAddCategory = (categoryData) => {
+    fetch(`${import.meta.env.VITE_API_BASE}/categories`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(categoryData),
     })
-    .catch(err => {
-      console.error("Gagal menambahkan kategori:", err);
-      toast({ title: "Gagal Menambahkan", description: "Terjadi kesalahan", variant: "destructive" });
-    });
-};
+      .then((res) => res.json())
+      .then((data) => {
+        setCategories((prev) => [...prev, { ...categoryData, id: data.id }]);
+        toast({
+          title: "Kategori Ditambahkan",
+          description: categoryData.label,
+        });
+      });
+  };
 
 
   const handleUpdateCategory = (updatedCategory) => {
@@ -600,34 +610,83 @@ const handleChiperlabStockOutUpload = (event) => {
   };
 
  const handleDeleteCategory = (id) => {
-  fetch(`https://fmiwarehouse.shop/api/categories/${id}`, {
-    method: "DELETE",
-  })
-    .then((res) => res.json())
-    .then((data) => {
-      if (data.success) {
-        setCategories((prev) => prev.filter((cat) => cat.id !== id));
-        toast({
-          title: "Kategori Dihapus",
-          description: "Kategori berhasil dihapus dari database",
-        });
-      } else {
-        toast({
-          title: "Gagal Menghapus",
-          description: "Terjadi kesalahan saat menghapus kategori",
-          variant: "destructive",
-        });
-      }
+    fetch(`${import.meta.env.VITE_API_BASE}/categories/${id}`, {
+      method: "DELETE",
     })
-    .catch((err) => {
-      console.error("Gagal hapus kategori:", err);
-      toast({
-        title: "Error Server",
-        description: "Tidak dapat menghubungi server",
-        variant: "destructive",
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setCategories((prev) => prev.filter((cat) => cat.id !== id));
+          toast({ title: "Kategori Dihapus" });
+        }
       });
+  };
+
+// ===== START PATCH: Fix POST /api/items/in/manual =====
+const handleAddItem = async () => {
+  // Ambil value dari input (ubah sesuai nama state/input lo)
+  const categoryInput = category; // misal state category
+  const variantInput = variant;   // misal state variant
+  const qtyInput = qty;           // misal state qty
+  const priceInput = price;       // misal state price
+
+  // ===== VALIDASI =====
+  if (!categoryInput || !variantInput) {
+    alert("Category dan variant wajib diisi");
+    return;
+  }
+
+  if (!qtyInput || Number(qtyInput) <= 0) {
+    alert("Quantity wajib diisi dan harus > 0");
+    return;
+  }
+
+  // ===== PAYLOAD FIX =====
+ const payload =
+  manualData.type === "out"
+    ? selectedItem
+      ? { itemId: selectedItem.id, quantity: qty, metode: manualData.metode || "Manual", sumber: "Manual" }
+      : { variant: manualData.varian, category: manualData.category, quantity: qty, metode: manualData.metode || "Manual", sumber: "Manual" }
+    : {
+        category: manualData.category,
+        variant: manualData.varian,
+        quantity: qty, // <--- GANTI qty jadi quantity
+        price: 0,
+        metode: manualData.metode || "Manual",
+        sumber: "Manual",
+      };
+
+
+  try {
+    console.log("🔁 Kirim ke endpoint:", "/api/items/in/manual");
+    console.log("📦 Payload:", payload);
+
+    const res = await fetch("/api/items/in/manual", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
     });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error("Respon server bukan JSON: " + text);
+    }
+
+    const data = await res.json();
+    console.log("✅ Success:", data);
+
+    // reset input atau update state
+    setCategory("");
+    setVariant("");
+    setQty("");
+    setPrice("");
+  } catch (err) {
+    console.error("❌ Error input stok:", err);
+    alert(err.message);
+  }
 };
+// ===== END PATCH =====
+
 const exportData = () => {
   const doc = new jsPDF();
   doc.setFontSize(14);
@@ -866,7 +925,7 @@ const exportStockOut = () => {
     </div>
 
     <DialogFooter>
-      <Button
+<Button
   onClick={() => {
     if (!requireAdmin()) return;
 
@@ -888,14 +947,13 @@ const exportStockOut = () => {
     );
 
     const endpoint =
-  manualData.type === "out"
-    ? "https://fmiwarehouse.shop/api/stock-out"
-    : "https://fmiwarehouse.shop/api/items/in/manual";
+      manualData.type === "out"
+        ? `${import.meta.env.VITE_API_BASE}/stock-out`
+        : `${import.meta.env.VITE_API_BASE}/items/in/manual`;
 
-const payload =
-  manualData.type === "out"
-    ? (
-        selectedItem
+    const payload =
+      manualData.type === "out"
+        ? selectedItem
           ? {
               itemId: selectedItem.id,
               quantity: qty,
@@ -903,22 +961,20 @@ const payload =
               sumber: "Manual",
             }
           : {
-              varian: manualData.varian,
+              variant: manualData.varian,
               category: manualData.category,
               quantity: qty,
               metode: manualData.metode || "Manual",
               sumber: "Manual",
             }
-      )
-    : {
-        category: manualData.category,
-        variant: manualData.varian, // 🔑 pakai "variant" (bukan varian)
-        qty: qty, // 🔑 pakai "qty" (bukan quantity)
-        price: 0,
-        metode: manualData.metode || "Manual",
-        sumber: "Manual",
-      };
-
+        : {
+            category: manualData.category,
+            variant: manualData.varian,
+            quantity: qty, // ⚠️ backend wajib "quantity"
+            price: 0,
+            metode: manualData.metode || "Manual",
+            sumber: "Manual",
+          };
 
     console.log("🔁 Kirim ke endpoint:", endpoint);
     console.log("📦 Payload:", payload);
@@ -932,8 +988,7 @@ const payload =
         const text = await res.text();
         try {
           const data = JSON.parse(text);
-          if (!res.ok)
-            throw new Error(data.message || "Gagal input stok");
+          if (!res.ok) throw new Error(data.message || "Gagal input stok");
           return data;
         } catch (e) {
           throw new Error(`Respon server bukan JSON: ${text}`);
@@ -941,10 +996,7 @@ const payload =
       })
       .then(() => {
         toast({
-          title:
-            manualData.type === "out"
-              ? "Barang Keluar"
-              : "Barang Masuk",
+          title: manualData.type === "out" ? "Barang Keluar" : "Barang Masuk",
           description: `${manualData.varian} (${manualData.category}) - Qty: ${qty}`,
         });
 
@@ -999,9 +1051,10 @@ const payload =
 
               <Button
   onClick={() => {
-    setFormType('masuk'); // default ke masuk
-    setShowManualForm(true);
-  }}
+  setManualData(prev => ({ ...prev, type: 'in' })); // 'in' untuk Stok Masuk
+  setShowManualForm(true);
+}}
+
   className="bg-indigo-600 text-white"
 >
   + Input Manual
