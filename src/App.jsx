@@ -126,7 +126,6 @@ const variantsPerCategory = {
 
 };
 
-
 const allowedCategories = [
   { value: "Vial 3ml Classic", label: "Vial 3ml Classic" },
   { value: "Vial 3ml Eksklusif", label: "Vial 3ml Eksklusif" },
@@ -146,12 +145,12 @@ const reasons = [
   { value: 'Lainnya', label: 'Lainnya' }
 ];
 const [manualData, setManualData] = useState({
-  type: 'in',      // 'in' atau 'out'
-  category: '',
-  varian: '',
-  qty: '',
-  metode: '',
-  sumber: 'Manual'
+  type: "in",
+  category: "",
+  variant: "",   // ← perbaikan di sini
+  qty: "",
+  metode: "",
+  sumber: "Manual"
 });
 
 
@@ -622,70 +621,105 @@ fetch(`${import.meta.env.VITE_API_BASE}/stock-out`, {
       });
   };
 
-// ===== START PATCH: Fix POST /api/items/in/manual =====
 const handleAddItem = async () => {
-  // Ambil value dari input (ubah sesuai nama state/input lo)
-  const categoryInput = category; // misal state category
-  const variantInput = variant;   // misal state variant
-  const qtyInput = qty;           // misal state qty
-  const priceInput = price;       // misal state price
+  const { type, category, varian, qty, metode, sumber } = manualData;
 
-  // ===== VALIDASI =====
-  if (!categoryInput || !variantInput) {
-    alert("Category dan variant wajib diisi");
-    return;
-  }
-
-  if (!qtyInput || Number(qtyInput) <= 0) {
-    alert("Quantity wajib diisi dan harus > 0");
-    return;
-  }
-
-  // ===== PAYLOAD FIX =====
- const payload =
-  manualData.type === "out"
-    ? selectedItem
-      ? { itemId: selectedItem.id, quantity: qty, metode: manualData.metode || "Manual", sumber: "Manual" }
-      : { variant: manualData.varian, category: manualData.category, quantity: qty, metode: manualData.metode || "Manual", sumber: "Manual" }
-    : {
-        category: manualData.category,
-        variant: manualData.varian,
-        quantity: qty, // <--- GANTI qty jadi quantity
-        price: 0,
-        metode: manualData.metode || "Manual",
-        sumber: "Manual",
-      };
-
-
-  try {
-    console.log("🔁 Kirim ke endpoint:", "/api/items/in/manual");
-    console.log("📦 Payload:", payload);
-
-    const res = await fetch("/api/items/in/manual", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+  if (!category || !varian || !qty) {
+    toast({
+      title: "Data Tidak Lengkap ⚠️",
+      description: "Kategori, varian, dan qty wajib diisi.",
+      variant: "destructive"
     });
+    return;
+  }
 
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error("Respon server bukan JSON: " + text);
+  const numericQty = Number(qty);
+  if (isNaN(numericQty) || numericQty <= 0) {
+    toast({
+      title: "Jumlah Tidak Valid ❌",
+      description: "Qty harus berupa angka dan lebih dari 0.",
+      variant: "destructive"
+    });
+    return;
+  }
+
+  // Coba cari item berdasarkan nama varian
+  const existingItem = items.find(
+    (item) =>
+      item.name.toLowerCase() === varian.toLowerCase() &&
+      item.category === category
+  );
+
+  if (type === "in") {
+    // ▣▣▣ STOK MASUK
+    const payload = {
+      name: varian,
+      category,
+      barcode: existingItem?.barcode || "",
+      stock: numericQty,
+      price: existingItem?.price || 0,
+      sumber: sumber || "Manual"
+    };
+
+    if (existingItem) {
+      // update stok existing item
+      handleStockIn(payload);
+    } else {
+      // buat item baru
+      handleStockIn(payload);
     }
 
-    const data = await res.json();
-    console.log("✅ Success:", data);
+    toast({
+      title: "Stok Masuk Ditambahkan 📥",
+      description: `${varian} +${numericQty}`
+    });
+  } else {
+    // ▣▣▣ STOK KELUAR
+    if (!existingItem) {
+      toast({
+        title: "Item Tidak Ditemukan ❌",
+        description: `${varian} belum terdaftar sebagai item`,
+        variant: "destructive"
+      });
+      return;
+    }
 
-    // reset input atau update state
-    setCategory("");
-    setVariant("");
-    setQty("");
-    setPrice("");
-  } catch (err) {
-    console.error("❌ Error input stok:", err);
-    alert(err.message);
+    if (existingItem.stock < numericQty) {
+      toast({
+        title: "Stok Tidak Cukup 💢",
+        description: `Stok hanya ${existingItem.stock}, tidak bisa mengurangi ${numericQty}`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    handleStockOut({
+      barcode: existingItem.barcode,
+      varian,
+      category,
+      qty: numericQty,
+      metode: metode || "-",
+      sumber: "Manual"
+    });
+
+    toast({
+      title: "Stok Keluar Berhasil 📤",
+      description: `${varian} -${numericQty} (${metode || "Manual"})`
+    });
   }
+
+  // reset data manual
+  setManualData({
+    type: "in",
+    category: "",
+    varian: "",
+    qty: "",
+    metode: "",
+    sumber: "Manual"
+  });
+
+  setShowManualForm(false);
 };
-// ===== END PATCH =====
 
 const exportData = () => {
   const doc = new jsPDF();
@@ -875,21 +909,7 @@ const exportStockOut = () => {
     {/* Varian */}
     <div className="mb-4">
       <label className="block text-sm mb-2">Varian</label>
-      <select
-        value={manualData.varian}
-        onChange={(e) =>
-          setManualData({ ...manualData, varian: e.target.value })
-        }
-        className="w-full p-2 rounded bg-gray-800 text-white"
-        disabled={!manualData.category}
-      >
-        <option value="">Pilih Varian</option>
-        {variantsPerCategory[manualData.category]?.map((varian) => (
-          <option key={varian} value={varian}>
-            {varian}
-          </option>
-        ))}
-      </select>
+    <select value={manualData.varian} onChange={(e) => setManualData({ ...manualData, varian: e.target.value }) } className="w-full p-2 rounded bg-gray-800 text-white" disabled={!manualData.category} > <option value="">Pilih Varian</option> {variantsPerCategory[manualData.category]?.map((varian) => ( <option key={varian} value={varian}> {varian} </option> ))} </select>
     </div>
 
     {/* Qty */}
@@ -946,35 +966,45 @@ const exportStockOut = () => {
         i.category.toLowerCase() === manualData.category.toLowerCase()
     );
 
+    // 🔍 AMBIL category_id dari daftar categories
+    const selectedCategory = categories.find(
+      (c) =>
+        c.label === manualData.category ||
+        c.name === manualData.category ||
+        c.value === manualData.category
+    );
+
+    const categoryId = selectedCategory?.id || null;
+
     const endpoint =
       manualData.type === "out"
         ? `${import.meta.env.VITE_API_BASE}/stock-out`
         : `${import.meta.env.VITE_API_BASE}/items/in/manual`;
 
     const payload =
-      manualData.type === "out"
-        ? selectedItem
-          ? {
-              itemId: selectedItem.id,
-              quantity: qty,
-              metode: manualData.metode || "Manual",
-              sumber: "Manual",
-            }
-          : {
-              variant: manualData.varian,
-              category: manualData.category,
-              quantity: qty,
-              metode: manualData.metode || "Manual",
-              sumber: "Manual",
-            }
-        : {
-            category: manualData.category,
-            variant: manualData.varian,
-            quantity: qty, // ⚠️ backend wajib "quantity"
-            price: 0,
-            metode: manualData.metode || "Manual",
-            sumber: "Manual",
-          };
+  manualData.type === "out"
+    ? selectedItem
+      ? {
+          itemId: selectedItem.id,
+          quantity: qty,
+          metode: manualData.metode || "Manual",
+          sumber: "Manual",
+        }
+      : {
+          variant: manualData.varian,
+          category: manualData.category,
+          quantity: qty,
+          metode: manualData.metode || "Manual",
+          sumber: "Manual",
+        }
+    : {
+        category: manualData.category,   // HANYA INI
+        variant: manualData.varian,      // HANYA INI
+        quantity: qty,
+        price: 0,
+        metode: manualData.metode || "Manual",
+        sumber: "Manual",
+      };
 
     console.log("🔁 Kirim ke endpoint:", endpoint);
     console.log("📦 Payload:", payload);
@@ -1044,6 +1074,7 @@ const exportStockOut = () => {
 >
   Simpan
 </Button>
+
 
     </DialogFooter>
   </DialogContent>

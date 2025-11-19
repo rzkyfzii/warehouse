@@ -88,16 +88,16 @@ const barcodeMap = {
   "8994457780306": { variant: "Amber", category: "Vial 3ml Classic", price: 10000 },
   "8994457780283": { variant: "Brotherhood", category: "Vial 3ml Classic", price: 10000 },
 
-  "8994457784762": { variant: "Lunareve", category: "Ocassion", price: 150000 },
-  "8994457784748": { variant: "Aeros", category: "Ocassion", price: 150000 },
-  "8994457784731": { variant: "Cartivage", category: "Ocassion", price: 150000 },
-  "8994457784786": { variant: "Veldran", category: "Ocassion", price: 150000 },
-  "8994457784779": { variant: "Elysian Haze", category: "Ocassion", price: 150000 },
-  "8994457784724": { variant: "Basil Breeze", category: "Ocassion", price: 150000 },
-  "8994457784717": { variant: "Tonkadusk", category: "Ocassion", price: 150000 },
-  "8994457784755": { variant: "Nutty Whispers", category: "Ocassion", price: 150000 },
-  "8994457785134": { variant: "Stromchaser", category: "Ocassion", price: 150000 },
-  "8994457785141 ": { variant: "Poetic", category: "Ocassion", price: 150000 },
+  "8994457784762": { variant: "Lunareve", category: "Balinese", price: 150000 },
+  "8994457784748": { variant: "Aeros", category: "Balinese", price: 150000 },
+  "8994457784731": { variant: "Cartivage", category: "Balinese", price: 150000 },
+  "8994457784786": { variant: "Veldran", category: "Balinese", price: 150000 },
+  "8994457784779": { variant: "Elysian Haze", category: "Balinese", price: 150000 },
+  "8994457784724": { variant: "Basil Breeze", category: "Balinese", price: 150000 },
+  "8994457784717": { variant: "Tonkadusk", category: "Balinese", price: 150000 },
+  "8994457784755": { variant: "Nutty Whispers", category: "Balinese", price: 150000 },
+  "8994457785134": { variant: "Stromchaser", category: "Balinese", price: 150000 },
+  "8994457785141 ": { variant: "Poetic", category: "Balinese", price: 150000 },
 };
 
 export const getBarcodeInfo = (barcode) => {

@@ -1,135 +1,159 @@
-import express from 'express';
-import initDB from '../db.js';
+import express from "express";
+import initDB from "../db.js";
 
 const router = express.Router();
 
-router.post('/', async (req, res) => {
-  const item = {
-    ...req.body,
-    price: Number(req.body.price) || 0,
-    photo: req.body.photo || null,   // ✅ tambahkan photo
-  };
+/* =====================================================
+   CREATE ITEM
+===================================================== */
+router.post("/", async (req, res) => {
+  try {
+    const item = {
+      ...req.body,
+      price: Number(req.body.price) || 0,
+      photo: req.body.photo || null,
+    };
 
-  console.log("📥 Item diterima:", item);
+    console.log("📥 Input item baru:", item);
 
-  const sql = `
-    INSERT INTO items (name, barcode, category, stock, price, minStock, photo)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `;
+    const sql = `
+      INSERT INTO items (name, barcode, category, stock, price, minStock, photo)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `;
 
-  const db = await initDB();
-  const [result] = await db.query(sql, [
-    item.name,
-    item.barcode,
-    item.category,
-    Number(item.stock),
-    Number(item.price),
-    Number(item.minStock),
-    item.photo,
-  ]);
+    const db = await initDB();
+    const [result] = await db.query(sql, [
+      item.name,
+      item.barcode,
+      item.category,
+      Number(item.stock),
+      Number(item.price),
+      Number(item.minStock),
+      item.photo,
+    ]);
 
-  res.json({ success: true, id: result.insertId });
+    res.json({ success: true, id: result.insertId });
+  } catch (err) {
+    console.error("❌ Error tambah item:", err);
+    res.status(500).json({ message: "Terjadi kesalahan pada server" });
+  }
 });
 
-// Ambil semua item
-router.get('/', async (req, res) => {
+/* =====================================================
+   GET ALL ITEMS
+===================================================== */
+router.get("/", async (req, res) => {
   try {
     const db = await initDB();
-    const [rows] = await db.query('SELECT * FROM items ORDER BY id DESC');
+    const [rows] = await db.query("SELECT * FROM items ORDER BY id DESC");
     res.json(rows);
   } catch (err) {
-    console.error('Error saat mengambil items:', err);
-    res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+    console.error("❌ Error ambil items:", err);
+    res.status(500).json({ message: "Terjadi kesalahan pada server" });
   }
 });
 
-// Tambah item baru
-router.post('/', async (req, res) => {
-  const { name, barcode, category, stock, minStock, price } = req.body;
+/* =====================================================
+   UPDATE ITEM
+===================================================== */
+router.put("/:id", async (req, res) => {
   try {
-    const db = await initDB();
-    const [result] = await db.query(
-      'INSERT INTO items (name, barcode, category, stock, minStock, price) VALUES (?, ?, ?, ?, ?, ?)',
-      [name, barcode, category, stock, minStock, price]
-    );
-    res.json({ id: result.insertId, message: 'Item berhasil ditambahkan' });
-  } catch (err) {
-    console.error('Error saat menambah item:', err);
-    res.status(500).json({ message: 'Terjadi kesalahan pada server' });
-  }
-});
+    const { id } = req.params;
+    const { name, barcode, category, stock, minStock, price } = req.body;
 
-// Update item berdasarkan ID
-router.put('/:id', async (req, res) => {
-  const { id } = req.params;
-  const { name, barcode, category, stock, minStock, price } = req.body;
-  try {
     const db = await initDB();
     const [result] = await db.query(
-      'UPDATE items SET name=?, barcode=?, category=?, stock=?, minStock=?, price=? WHERE id=?',
+      "UPDATE items SET name=?, barcode=?, category=?, stock=?, minStock=?, price=? WHERE id=?",
       [name, barcode, category, stock, minStock, price, id]
     );
+
     if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Item tidak ditemukan' });
+      return res.status(404).json({ message: "Item tidak ditemukan" });
     }
-    res.json({ message: 'Item berhasil diperbarui' });
+
+    res.json({ message: "Item berhasil diperbarui" });
   } catch (err) {
-    console.error('Error saat update item:', err);
-    res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+    console.error("❌ Error update item:", err);
+    res.status(500).json({ message: "Terjadi kesalahan pada server" });
   }
 });
 
-// Hapus item berdasarkan ID
-router.delete('/:id', async (req, res) => {
-  const { id } = req.params;
+/* =====================================================
+   DELETE ITEM
+===================================================== */
+router.delete("/:id", async (req, res) => {
   try {
+    const { id } = req.params;
     const db = await initDB();
-    const [result] = await db.query('DELETE FROM items WHERE id = ?', [id]);
+
+    const [result] = await db.query("DELETE FROM items WHERE id = ?", [id]);
+
     if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Item tidak ditemukan' });
+      return res.status(404).json({ message: "Item tidak ditemukan" });
     }
-    res.json({ message: 'Item berhasil dihapus' });
+
+    res.json({ message: "Item berhasil dihapus" });
   } catch (err) {
-    console.error('Error saat hapus item:', err);
-    res.status(500).json({ message: 'Terjadi kesalahan pada server' });
+    console.error("❌ Error hapus item:", err);
+    res.status(500).json({ message: "Terjadi kesalahan pada server" });
   }
 });
 
-app.post("/api/items/in/manual", async (req, res) => {
-  const { category, variant, qty, price, metode, sumber } = req.body;
+/* =====================================================
+   MANUAL STOCK IN
+===================================================== */
+router.post("/in/manual", async (req, res) => {
+  console.log("📥 INPUT MANUAL:", req.body);
 
-  if (!qty || qty <= 0) {
-    return res.status(400).json({ message: "Quantity wajib diisi" });
+  const { category, variant, qty, quantity, price } = req.body;
+
+  const finalQty = Number(qty ?? quantity);
+
+  if (!finalQty || isNaN(finalQty) || finalQty <= 0) {
+    return res.status(400).json({ message: "Quantity tidak valid" });
   }
 
   if (!category || !variant) {
     return res.status(400).json({ message: "Kategori & Varian wajib diisi" });
   }
 
-  // Cek item di database
-  let item = await db.items.findOne({ category, variant });
+  try {
+    const db = await initDB();
 
-  if (!item) {
-    // Kalau belum ada, buat item baru
-    item = await db.items.create({
-      category,
-      variant,
-      stock: 0,
-      price,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    // 🔥 Cari berdasarkan nama kategori, bukan category_id
+    const [rows] = await db.query(
+      "SELECT * FROM items WHERE category=? AND name=? LIMIT 1",
+      [category, variant]
+    );
+
+    let item;
+
+    if (rows.length === 0) {
+      // Jika belum ada → buat baru
+      const [result] = await db.query(
+        "INSERT INTO items (name, category, stock, price) VALUES (?, ?, ?, ?)",
+        [variant, category, 0, price]
+      );
+
+      item = { id: result.insertId, name: variant, category, stock: 0, price };
+    } else {
+      item = rows[0];
+    }
+
+    // Update stock
+    await db.query("UPDATE items SET stock = stock + ? WHERE id = ?", [
+      finalQty,
+      item.id,
+    ]);
+
+    res.json({
+      message: "Stok berhasil ditambahkan",
+      item: { ...item, stock: item.stock + finalQty },
     });
+  } catch (err) {
+    console.error("❌ Error manual stock-in:", err);
+    res.status(500).json({ message: "Terjadi kesalahan pada server" });
   }
-
-  // Tambah stok
-  item.stock += qty;
-  item.updatedAt = new Date();
-  await item.save();
-
-  return res.json({
-    message: "Stok berhasil ditambahkan",
-    item,
-  });
 });
 
 export default router;

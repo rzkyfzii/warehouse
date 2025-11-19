@@ -38,7 +38,7 @@ const variantImageMap = {
   "BROTHERHOOD STORY (CL)": "/images/classic/brotherhood-story.png",
   "HAPPINESS": "/images/classic/happiness.png",
   "OMBRE (CL)": "/images/classic/ombre.png",
-  "ROSES": "images/classic/roses.png",
+  "ROSES": "/images/classic/roses.png",
   "JASMINUM SAMBAC": "/images/classic/jasminum-sambac.png",
   "LOVE OUD (CL)": "/images/classic/love-oud.png",
   "MAGIC OF NATURE": "/images/classic/magic-of-nature.png",
