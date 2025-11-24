@@ -73,7 +73,7 @@ const InventoryView = ({
     if (adjustment !== 0) {
       const newStock = Math.max(0, item.stock + adjustment);
 
-      fetch(`http://localhost:3001/items/${item.id}`, {
+      fetch(`/api/items/${item.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ stock: newStock }),

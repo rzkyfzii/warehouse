@@ -10,7 +10,7 @@ import historyKeluarRoute from './routes/historyKeluar.js';
 import stockInRouter from './routes/stockIn.js';
 
 const app = express();
-const PORT = 3000;
+const PORT = 8082;
 
 app.use(cors());
 app.use(express.json());
